@@ -7,10 +7,10 @@ import { NoAgentsPlaceholder } from '../../components/NoAgentsPlaceholder';
 type TaskStatus = 'active' | 'running' | 'completed' | 'failed' | 'pending' | 'unknown';
 
 const STATUS_COLUMNS: { status: TaskStatus[]; label: string }[] = [
-  { status: ['pending'], label: 'Pending' },
-  { status: ['active', 'running'], label: 'In Progress' },
-  { status: ['completed'], label: 'Done' },
-  { status: ['failed'], label: 'Failed' },
+  { status: ['pending'], label: '待處理' },
+  { status: ['active', 'running'], label: '進行中' },
+  { status: ['completed'], label: '已完成' },
+  { status: ['failed'], label: '失敗' },
 ];
 
 export default function TasksBoard() {
@@ -19,13 +19,12 @@ export default function TasksBoard() {
   if (agents.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Tasks Board</h1>
-        <NoAgentsPlaceholder message="Connect agents to see live sessions as tasks." />
+        <h1 className="text-2xl font-bold mb-6">任務看板</h1>
+        <NoAgentsPlaceholder message="連接 Agent 即可查看即時 Session 任務。" />
       </div>
     );
   }
 
-  // Map sessions to kanban columns
   const categorized = allSessions.map((session) => {
     let colStatus: TaskStatus = 'unknown';
     for (const col of STATUS_COLUMNS) {
@@ -41,15 +40,15 @@ export default function TasksBoard() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Tasks Board</h1>
+        <h1 className="text-2xl font-bold">任務看板</h1>
         <span className="text-sm text-gray-500">
-          {allSessions.length} session{allSessions.length !== 1 ? 's' : ''} from {connectedCount} agent{connectedCount !== 1 ? 's' : ''}
+          來自 {connectedCount} 個 Agent 的 {allSessions.length} 個 Session
         </span>
       </div>
 
       {allSessions.length === 0 && connectedCount > 0 && (
         <div className="bg-yellow-50 p-4 rounded-lg mb-6 text-sm text-yellow-800">
-          Connected to {connectedCount} agent{connectedCount > 1 ? 's' : ''} but no sessions found.
+          已連接 {connectedCount} 個 Agent，但未找到任何 Session。
         </div>
       )}
 
@@ -75,7 +74,7 @@ export default function TasksBoard() {
                   </div>
                   {session.created_at && (
                     <p className="text-xs text-gray-400 mt-1">
-                      {new Date(session.created_at).toLocaleString()}
+                      {new Date(session.created_at).toLocaleString('zh-TW')}
                     </p>
                   )}
                 </div>
@@ -85,7 +84,7 @@ export default function TasksBoard() {
         })}
       </div>
 
-      {/* Per-agent status */}
+      {/* 各 Agent 狀態 */}
       <div className="mt-6 flex gap-2 flex-wrap">
         {agents.map(({ connection }) => (
           <div key={connection.config.id} className="flex items-center gap-1.5 text-sm bg-white px-3 py-1.5 rounded shadow-sm">

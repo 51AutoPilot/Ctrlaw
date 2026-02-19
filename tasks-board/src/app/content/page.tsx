@@ -7,11 +7,11 @@ import { NoAgentsPlaceholder } from '../../components/NoAgentsPlaceholder';
 type Stage = 'pending' | 'active' | 'running' | 'completed' | 'failed';
 
 const STAGES: { id: Stage; label: string }[] = [
-  { id: 'pending', label: 'Pending' },
-  { id: 'active', label: 'Active' },
-  { id: 'running', label: 'Running' },
-  { id: 'completed', label: 'Completed' },
-  { id: 'failed', label: 'Failed' },
+  { id: 'pending', label: '待處理' },
+  { id: 'active', label: '進行中' },
+  { id: 'running', label: '執行中' },
+  { id: 'completed', label: '已完成' },
+  { id: 'failed', label: '失敗' },
 ];
 
 export default function ContentPipeline() {
@@ -35,8 +35,8 @@ export default function ContentPipeline() {
   if (agents.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Content Pipeline</h1>
-        <NoAgentsPlaceholder message="Connect agents to see sessions flowing through pipeline stages." />
+        <h1 className="text-2xl font-bold mb-6">內容管線</h1>
+        <NoAgentsPlaceholder message="連接 Agent 即可查看 Session 流經各管線階段。" />
       </div>
     );
   }
@@ -44,9 +44,9 @@ export default function ContentPipeline() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Content Pipeline</h1>
+        <h1 className="text-2xl font-bold">內容管線</h1>
         <span className="text-sm text-gray-500">
-          {allSessions.length} total sessions from {connectedCount} agent{connectedCount !== 1 ? 's' : ''}
+          來自 {connectedCount} 個 Agent 共 {allSessions.length} 個 Session
         </span>
       </div>
 
@@ -68,7 +68,7 @@ export default function ContentPipeline() {
                   <p className="text-xs text-gray-400">{session.agentName}</p>
                   {session.created_at && (
                     <p className="text-xs text-gray-400">
-                      {new Date(session.created_at).toLocaleDateString()}
+                      {new Date(session.created_at).toLocaleDateString('zh-TW')}
                     </p>
                   )}
                 </div>

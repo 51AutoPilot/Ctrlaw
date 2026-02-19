@@ -14,7 +14,6 @@ export default function MemoryPage() {
   >([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Fetch session histories from connected agents
   const fetchHistories = useCallback(async () => {
     const connected = agents.filter(
       (a) => a.connection.status === 'ws_connected'
@@ -27,7 +26,6 @@ export default function MemoryPage() {
     for (const agent of connected) {
       const client = new GatewayClient(agent.connection.config.localPort);
       client.connect();
-      // Wait briefly for WebSocket to connect
       await new Promise((r) => setTimeout(r, 1000));
 
       for (const session of agent.sessions) {
@@ -35,7 +33,7 @@ export default function MemoryPage() {
           const history = await client.getSessionHistory(session.id);
           results.push({ ...history, agentName: agent.connection.config.name });
         } catch {
-          // Skip sessions we can't fetch history for
+          // 略過無法取得紀錄的 Session
         }
       }
 
@@ -52,7 +50,6 @@ export default function MemoryPage() {
     }
   }, [agents, fetchHistories]);
 
-  // Combine sessions + histories for display
   const memoryCards = allSessions.map((session) => {
     const history = histories.find(
       (h) => h.session_id === session.id && h.agentName === session.agentName
@@ -65,7 +62,7 @@ export default function MemoryPage() {
     return {
       id: `${session.agentName}-${session.id}`,
       title: session.id,
-      content: messagePreview || `Session ${session.status}`,
+      content: messagePreview || `Session 狀態：${session.status}`,
       agentName: session.agentName,
       date: session.created_at || '',
       status: session.status,
@@ -83,33 +80,33 @@ export default function MemoryPage() {
   if (agents.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Memory</h1>
-        <NoAgentsPlaceholder message="Connect agents to browse session conversation history." />
+        <h1 className="text-2xl font-bold mb-6">記憶庫</h1>
+        <NoAgentsPlaceholder message="連接 Agent 即可瀏覽 Session 對話紀錄。" />
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Memory</h1>
+      <h1 className="text-2xl font-bold mb-6">記憶庫</h1>
 
       <input
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search sessions and conversations..."
+        placeholder="搜尋 Session 與對話紀錄..."
         className="w-full p-3 border rounded-lg mb-6"
       />
 
       {loadingHistory && (
-        <p className="text-sm text-gray-400 mb-4">Loading conversation history...</p>
+        <p className="text-sm text-gray-400 mb-4">正在載入對話紀錄...</p>
       )}
 
       {filtered.length === 0 ? (
         <p className="text-gray-500">
           {allSessions.length === 0
-            ? 'No sessions available from connected agents.'
-            : 'No results match your search.'}
+            ? '已連線的 Agent 中沒有可用的 Session。'
+            : '沒有符合搜尋條件的結果。'}
         </p>
       ) : (
         <div className="space-y-4">
@@ -119,7 +116,7 @@ export default function MemoryPage() {
                 <h3 className="font-bold text-lg truncate flex-1">{memory.title}</h3>
                 <span className="text-sm text-gray-500 ml-2 whitespace-nowrap">
                   {memory.date
-                    ? new Date(memory.date).toLocaleDateString()
+                    ? new Date(memory.date).toLocaleDateString('zh-TW')
                     : ''}
                 </span>
               </div>
@@ -141,7 +138,7 @@ export default function MemoryPage() {
                 </span>
                 {memory.messageCount > 0 && (
                   <span className="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded">
-                    {memory.messageCount} messages
+                    {memory.messageCount} 則訊息
                   </span>
                 )}
               </div>

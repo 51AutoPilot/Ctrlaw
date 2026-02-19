@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAgents } from '../../lib/agent-context';
 import { AgentStatusBadge } from '../../components/AgentStatusBadge';
 
-const ROLE_OPTIONS = ['Commander', 'Researcher', 'Worker', 'Advisor', 'Trader', 'Monitor'];
+const ROLE_OPTIONS = ['指揮官', '研究員', '工作者', '顧問', '交易員', '監控員'];
 
 export default function Settings() {
   const {
@@ -22,7 +22,7 @@ export default function Settings() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
-    role: 'Worker',
+    role: '工作者',
     avatar: '',
     ec2Ip: '',
     ec2User: 'ubuntu',
@@ -30,7 +30,7 @@ export default function Settings() {
   });
 
   const resetForm = () => {
-    setForm({ name: '', role: 'Worker', avatar: '', ec2Ip: '', ec2User: 'ubuntu', pemPath: '' });
+    setForm({ name: '', role: '工作者', avatar: '', ec2Ip: '', ec2User: 'ubuntu', pemPath: '' });
     setShowForm(false);
     setEditingId(null);
   };
@@ -76,7 +76,7 @@ export default function Settings() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Remove this agent?')) {
+    if (confirm('確定要移除此 Agent？')) {
       await removeAgent(id);
     }
   };
@@ -84,49 +84,49 @@ export default function Settings() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-2xl font-bold">設定</h1>
         <div className="flex gap-2">
           <button
             onClick={connectAll}
             className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
           >
-            Connect All
+            全部連線
           </button>
           <button
             onClick={disconnectAll}
             className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
           >
-            Disconnect All
+            全部斷線
           </button>
           <button
             onClick={() => { resetForm(); setShowForm(true); }}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
           >
-            + Add Agent
+            + 新增 Agent
           </button>
         </div>
       </div>
 
-      {/* Add/Edit Form */}
+      {/* 新增/編輯表單 */}
       {showForm && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-lg font-bold mb-4">
-            {editingId ? 'Edit Agent' : 'Add New Agent'}
+            {editingId ? '編輯 Agent' : '新增 Agent'}
           </h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Name *</label>
+              <label className="block text-sm font-medium mb-1">名稱 *</label>
               <input
                 type="text"
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Agent-Alpha"
+                placeholder="例如：Agent-Alpha"
                 className="w-full p-2 border rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Role</label>
+              <label className="block text-sm font-medium mb-1">角色</label>
               <select
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -138,12 +138,12 @@ export default function Settings() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Avatar (single char/emoji)</label>
+              <label className="block text-sm font-medium mb-1">頭像（單一字元或 Emoji）</label>
               <input
                 type="text"
                 value={form.avatar}
                 onChange={(e) => setForm({ ...form, avatar: e.target.value })}
-                placeholder="Auto: first letter of name"
+                placeholder="預設：名稱首字母"
                 maxLength={2}
                 className="w-full p-2 border rounded-lg"
               />
@@ -155,12 +155,12 @@ export default function Settings() {
                 required
                 value={form.ec2Ip}
                 onChange={(e) => setForm({ ...form, ec2Ip: e.target.value })}
-                placeholder="e.g. 54.123.45.67"
+                placeholder="例如：54.123.45.67"
                 className="w-full p-2 border rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">SSH User</label>
+              <label className="block text-sm font-medium mb-1">SSH 使用者</label>
               <input
                 type="text"
                 value={form.ec2User}
@@ -170,7 +170,7 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">PEM File Path *</label>
+              <label className="block text-sm font-medium mb-1">PEM 金鑰路徑 *</label>
               <input
                 type="text"
                 required
@@ -185,25 +185,25 @@ export default function Settings() {
                 type="submit"
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               >
-                {editingId ? 'Save Changes' : 'Add Agent'}
+                {editingId ? '儲存變更' : '新增 Agent'}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
                 className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
               >
-                Cancel
+                取消
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Agent List */}
+      {/* Agent 列表 */}
       {agents.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-gray-500 text-lg mb-4">No agents configured yet.</p>
-          <p className="text-gray-400">Click &quot;Add Agent&quot; to connect your first OpenClaw instance.</p>
+          <p className="text-gray-500 text-lg mb-4">尚未設定任何 Agent。</p>
+          <p className="text-gray-400">點擊「新增 Agent」來連接你的第一個 OpenClaw 實例。</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -236,27 +236,27 @@ export default function Settings() {
                       onClick={() => connectAgent(c.id)}
                       className="px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600"
                     >
-                      Connect
+                      連線
                     </button>
                   ) : (
                     <button
                       onClick={() => disconnectAgent(c.id)}
                       className="px-3 py-1.5 bg-gray-400 text-white rounded text-sm hover:bg-gray-500"
                     >
-                      Disconnect
+                      斷線
                     </button>
                   )}
                   <button
                     onClick={() => startEdit(c.id)}
                     className="px-3 py-1.5 bg-gray-200 rounded text-sm hover:bg-gray-300"
                   >
-                    Edit
+                    編輯
                   </button>
                   <button
                     onClick={() => handleDelete(c.id)}
                     className="px-3 py-1.5 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
                   >
-                    Remove
+                    移除
                   </button>
                 </div>
               </div>
@@ -265,14 +265,14 @@ export default function Settings() {
         </div>
       )}
 
-      {/* Info */}
+      {/* 說明 */}
       <div className="mt-8 p-4 bg-blue-50 rounded-lg text-sm text-gray-600">
-        <h3 className="font-bold mb-2">How it works</h3>
+        <h3 className="font-bold mb-2">使用說明</h3>
         <ol className="list-decimal list-inside space-y-1">
-          <li>Add your EC2 instance details (IP, SSH user, PEM key path)</li>
-          <li>Click &quot;Connect&quot; to open an SSH tunnel to the OpenClaw Gateway (port 18789)</li>
-          <li>The dashboard will automatically fetch live data via WebSocket</li>
-          <li>All pages update in real-time with agent sessions, nodes, and health info</li>
+          <li>填入你的 EC2 主機資訊（IP、SSH 使用者、PEM 金鑰路徑）</li>
+          <li>點擊「連線」建立 SSH 通道連接 OpenClaw Gateway（port 18789）</li>
+          <li>儀表板將自動透過 WebSocket 取得即時資料</li>
+          <li>所有頁面會即時更新 Agent 的 Sessions、Nodes 及健康狀態</li>
         </ol>
       </div>
     </div>

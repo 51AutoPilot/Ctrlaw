@@ -3,11 +3,11 @@
 import type { ConnectionStatus } from '../lib/types';
 
 const statusConfig: Record<ConnectionStatus, { color: string; bg: string; label: string }> = {
-  disconnected: { color: 'text-gray-600', bg: 'bg-gray-100', label: 'Offline' },
-  connecting: { color: 'text-yellow-700', bg: 'bg-yellow-100', label: 'Connecting...' },
-  tunnel_up: { color: 'text-yellow-700', bg: 'bg-yellow-100', label: 'Tunnel Up' },
-  ws_connected: { color: 'text-green-700', bg: 'bg-green-100', label: 'Connected' },
-  error: { color: 'text-red-700', bg: 'bg-red-100', label: 'Error' },
+  disconnected: { color: 'text-gray-600', bg: 'bg-gray-100', label: '離線' },
+  connecting: { color: 'text-yellow-700', bg: 'bg-yellow-100', label: '連線中...' },
+  tunnel_up: { color: 'text-yellow-700', bg: 'bg-yellow-100', label: '通道已建立' },
+  ws_connected: { color: 'text-green-700', bg: 'bg-green-100', label: '已連線' },
+  error: { color: 'text-red-700', bg: 'bg-red-100', label: '錯誤' },
 };
 
 const dotColor: Record<ConnectionStatus, string> = {

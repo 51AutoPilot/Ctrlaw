@@ -16,14 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/tasks", label: "Tasks" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/memory", label: "Memory" },
-  { href: "/content", label: "Content" },
-  { href: "/team", label: "Team" },
-  { href: "/office", label: "Office" },
-  { href: "/settings", label: "Settings" },
+  { href: "/", label: "\u9996\u9801" },
+  { href: "/tasks", label: "\u4efb\u52d9" },
+  { href: "/calendar", label: "\u884c\u4e8b\u66c6" },
+  { href: "/memory", label: "\u8a18\u61b6" },
+  { href: "/content", label: "\u5167\u5bb9" },
+  { href: "/team", label: "\u5718\u968a" },
+  { href: "/office", label: "\u8fa6\u516c\u5ba4" },
+  { href: "/settings", label: "\u8a2d\u5b9a" },
 ];
 
 function ConnectionIndicator() {
@@ -38,7 +38,7 @@ function ConnectionIndicator() {
   return (
     <span className="flex items-center gap-1.5 text-sm text-gray-600">
       <span className={`inline-block w-2 h-2 rounded-full ${dotColor}`} />
-      {totalCount === 0 ? 'No agents' : `${connectedCount}/${totalCount} agents`}
+      {totalCount === 0 ? '尚無 Agent' : `${connectedCount}/${totalCount} 個 Agent`}
     </span>
   );
 }
@@ -49,9 +49,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-TW">
       <head>
-        <title>Mission Control - AI Operating System</title>
+        <title>Ctrlaw - AI 智能作業系統</title>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}
@@ -62,7 +62,7 @@ export default function RootLayout({
               <div className="flex items-center justify-between h-14">
                 <div className="flex items-center gap-4">
                   <Link href="/" className="font-bold text-lg">
-                    Mission Control
+                    Ctrlaw
                   </Link>
                   <ConnectionIndicator />
                 </div>

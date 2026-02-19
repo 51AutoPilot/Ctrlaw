@@ -16,15 +16,15 @@ export default function Team() {
   if (agents.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Team</h1>
-        <NoAgentsPlaceholder message="Add agents in Settings to see your team here." />
+        <h1 className="text-2xl font-bold mb-6">團隊</h1>
+        <NoAgentsPlaceholder message="在設定中新增 Agent 即可查看團隊成員。" />
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Team</h1>
+      <h1 className="text-2xl font-bold mb-6">團隊</h1>
       <div className="grid grid-cols-2 gap-4">
         {agents.map(({ connection, sessions }) => {
           const c = connection.config;
@@ -33,7 +33,7 @@ export default function Team() {
             (s) => s.status === 'active' || s.status === 'running'
           );
           const currentTask = activeSessions.length > 0
-            ? `${activeSessions.length} active session${activeSessions.length > 1 ? 's' : ''}`
+            ? `${activeSessions.length} 個進行中的 Session`
             : undefined;
 
           return (

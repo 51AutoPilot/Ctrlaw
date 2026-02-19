@@ -10,8 +10,8 @@ export default function Office() {
   if (agents.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Digital Office</h1>
-        <NoAgentsPlaceholder message="Add agents in Settings to see the office view." />
+        <h1 className="text-2xl font-bold mb-6">數位辦公室</h1>
+        <NoAgentsPlaceholder message="在設定中新增 Agent 即可查看辦公室檢視。" />
       </div>
     );
   }
@@ -22,7 +22,7 @@ export default function Office() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Digital Office</h1>
+      <h1 className="text-2xl font-bold mb-6">數位辦公室</h1>
 
       <div className="grid grid-cols-3 gap-6">
         {agents.map(({ connection, sessions, health }) => {
@@ -47,13 +47,13 @@ export default function Office() {
               </div>
               {isConnected && activeSessions.length > 0 && (
                 <p className="text-sm text-center text-gray-600 border-t pt-3">
-                  {activeSessions.length} active session{activeSessions.length > 1 ? 's' : ''}
+                  {activeSessions.length} 個進行中的 Session
                 </p>
               )}
               {health && (
                 <p className="text-xs text-center text-gray-400 mt-1">
                   {health.version && `v${health.version}`}
-                  {health.uptime != null && ` | up ${Math.floor(health.uptime / 60)}m`}
+                  {health.uptime != null && ` | 運行 ${Math.floor(health.uptime / 60)} 分鐘`}
                 </p>
               )}
               <div className="mt-4 h-2 bg-gray-200 rounded overflow-hidden">
@@ -71,9 +71,9 @@ export default function Office() {
       </div>
 
       <div className="mt-8 bg-blue-50 p-4 rounded-lg">
-        <h3 className="font-bold mb-2">Office Status</h3>
+        <h3 className="font-bold mb-2">辦公室狀態</h3>
         <p className="text-sm">
-          Active Agents: {activeCount}/{agents.length}
+          在線 Agent：{activeCount}/{agents.length}
         </p>
       </div>
     </div>
