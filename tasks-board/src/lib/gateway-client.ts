@@ -8,25 +8,27 @@ import type {
 const REQUEST_TIMEOUT = 15000;
 const RECONNECT_INTERVAL = 5000;
 
-// OpenClaw WebSocket protocol:
-// Request:  { type: "req", id: "<uuid>", method: "<method>", params?: {...} }
-// Response: { type: "res", id: "<uuid>", ok: true, result: ... }
-//           { type: "res", id: "<uuid>", ok: false, error: { code, message } }
-// First message must be: method "connect" with params { token }
+// OpenClaw Gateway WebSocket protocol (v3):
+//
+// 1. Client connects to ws://host:port
+// 2. Server sends: { type: "event", event: "connect.challenge", payload: { nonce, ts } }
+// 3. Client sends: { type: "req", id, method: "connect", params: {
+//      minProtocol: 3, maxProtocol: 3,
+//      auth: { token },
+//      client: { id: "openclaw-control-ui", mode: "ui", platform, version },
+//      scopes: ["operator.admin"]
+//    }}
+// 4. Server responds: { type: "res", id, ok: true, payload: { ... } }
+// 5. Client can now send requests, server responds with { type: "res", id, ok, payload/error }
 
-interface OcRequest {
-  type: 'req';
-  id: string;
-  method: string;
-  params?: Record<string, unknown>;
-}
-
-interface OcResponse {
-  type: 'res';
-  id: string;
-  ok: boolean;
+interface OcMessage {
+  type: string;
+  id?: string;
+  event?: string;
+  ok?: boolean;
+  payload?: unknown;
   result?: unknown;
-  error?: { code: number; message: string };
+  error?: { code: string | number; message: string };
 }
 
 type ConnectionCallback = (port: number, connected: boolean) => void;
@@ -83,8 +85,8 @@ export class GatewayClient {
     }
 
     this.ws.onopen = () => {
-      // Must send "connect" handshake first
-      this.handshake();
+      // Wait for connect.challenge event — do NOT send handshake yet
+      this._connected = true;
     };
 
     this.ws.onclose = () => {
@@ -101,17 +103,27 @@ export class GatewayClient {
 
     this.ws.onmessage = (event) => {
       try {
-        const msg = JSON.parse(event.data as string) as OcResponse;
-        if (msg.type !== 'res') return; // ignore non-response frames (events, etc.)
+        const msg = JSON.parse(event.data as string) as OcMessage;
 
-        const pending = this.pending.get(msg.id);
-        if (pending) {
-          clearTimeout(pending.timer);
-          this.pending.delete(msg.id);
-          if (msg.ok) {
-            pending.resolve(msg.result);
-          } else {
-            pending.reject(new Error(msg.error?.message || 'Unknown error'));
+        // Handle server events
+        if (msg.type === 'event') {
+          if (msg.event === 'connect.challenge' && !this._handshook) {
+            this.handshake();
+          }
+          return;
+        }
+
+        // Handle responses
+        if (msg.type === 'res' && msg.id) {
+          const pending = this.pending.get(msg.id);
+          if (pending) {
+            clearTimeout(pending.timer);
+            this.pending.delete(msg.id);
+            if (msg.ok) {
+              pending.resolve(msg.payload ?? msg.result);
+            } else {
+              pending.reject(new Error(msg.error?.message || 'Unknown error'));
+            }
           }
         }
       } catch (e) {
@@ -123,15 +135,21 @@ export class GatewayClient {
   private async handshake(): Promise<void> {
     try {
       await this.request('connect', {
-        token: this.token || undefined,
-        client: 'mission-control',
+        minProtocol: 3,
+        maxProtocol: 3,
+        auth: { token: this.token || undefined },
+        client: {
+          id: 'openclaw-control-ui',
+          mode: 'ui',
+          platform: 'windows',
+          version: '0.1.0',
+        },
+        scopes: ['operator.admin'],
       });
-      this._connected = true;
       this._handshook = true;
       this.onConnectionChange?.(this.port, true);
     } catch (e) {
       console.error('Handshake failed:', e);
-      this._connected = false;
       this._handshook = false;
       this.onConnectionChange?.(this.port, false);
     }
@@ -181,8 +199,8 @@ export class GatewayClient {
       }
 
       const id = nextId();
-      const req: OcRequest = {
-        type: 'req',
+      const req = {
+        type: 'req' as const,
         id,
         method,
         params,
@@ -213,8 +231,8 @@ export class GatewayClient {
   }
 
   async listSessions(): Promise<GatewaySession[]> {
-    const result = await this.request('sessions.list');
-    return (result as GatewaySession[]) || [];
+    const result = await this.request('sessions.list') as { sessions?: GatewaySession[] };
+    return result?.sessions || [];
   }
 
   async getSessionHistory(sessionId: string): Promise<SessionHistory> {
@@ -233,8 +251,8 @@ export class GatewayClient {
   }
 
   async listAgents(): Promise<unknown[]> {
-    const result = await this.request('agents.list');
-    return (result as unknown[]) || [];
+    const result = await this.request('agents.list') as { agents?: unknown[] };
+    return result?.agents || [];
   }
 
   async listCron(): Promise<unknown[]> {
