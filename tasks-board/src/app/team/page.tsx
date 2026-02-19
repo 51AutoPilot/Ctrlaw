@@ -1,47 +1,63 @@
 'use client';
 
-import { useState } from 'react';
+import { useAgents } from '../../lib/agent-context';
+import { AgentStatusBadge } from '../../components/AgentStatusBadge';
+import { NoAgentsPlaceholder } from '../../components/NoAgentsPlaceholder';
 
-interface Member {
-  id: string;
-  name: string;
-  role: string;
-  status: 'idle' | 'working' | 'blocked';
-  task?: string;
+function connectionToWorkStatus(status: string): 'working' | 'idle' | 'blocked' {
+  if (status === 'ws_connected') return 'working';
+  if (status === 'error') return 'blocked';
+  return 'idle';
 }
 
 export default function Team() {
-  const [members] = useState<Member[]>([
-    { id: '1', name: '大龍蝦 (Me)', role: 'Commander', status: 'working', task: 'Building Mission Control' },
-    { id: '2', name: 'KIMI', role: 'Researcher', status: 'idle' },
-    { id: '3', name: 'MiniMax', role: 'Worker', status: 'idle' },
-    { id: '4', name: 'Claude Opus', role: 'Advisor', status: 'idle' },
-  ]);
+  const { agents } = useAgents();
+
+  if (agents.length === 0) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6">Team</h1>
+        <NoAgentsPlaceholder message="Add agents in Settings to see your team here." />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">👥 Team</h1>
+      <h1 className="text-2xl font-bold mb-6">Team</h1>
       <div className="grid grid-cols-2 gap-4">
-        {members.map(member => (
-          <div key={member.id} className="bg-white p-4 rounded-lg shadow flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-              member.status === 'working' ? 'bg-green-100' : member.status === 'blocked' ? 'bg-red-100' : 'bg-gray-100'
-            }`}>
-              {member.name[0]}
+        {agents.map(({ connection, sessions }) => {
+          const c = connection.config;
+          const workStatus = connectionToWorkStatus(connection.status);
+          const activeSessions = sessions.filter(
+            (s) => s.status === 'active' || s.status === 'running'
+          );
+          const currentTask = activeSessions.length > 0
+            ? `${activeSessions.length} active session${activeSessions.length > 1 ? 's' : ''}`
+            : undefined;
+
+          return (
+            <div key={c.id} className="bg-white p-4 rounded-lg shadow flex items-center gap-4">
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
+                  workStatus === 'working'
+                    ? 'bg-green-100'
+                    : workStatus === 'blocked'
+                      ? 'bg-red-100'
+                      : 'bg-gray-100'
+                }`}
+              >
+                {c.avatar}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold">{c.name}</h3>
+                <p className="text-sm text-gray-500">{c.role}</p>
+                {currentTask && <p className="text-sm text-blue-600">{currentTask}</p>}
+              </div>
+              <AgentStatusBadge status={connection.status} size="sm" />
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold">{member.name}</h3>
-              <p className="text-sm text-gray-500">{member.role}</p>
-              {member.task && <p className="text-sm text-blue-600">📌 {member.task}</p>}
-            </div>
-            <div className={`px-3 py-1 rounded ${
-              member.status === 'working' ? 'bg-green-100 text-green-800' : 
-              member.status === 'blocked' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-            }`}>
-              {member.status === 'working' ? '🔥' : member.status === 'blocked' ? '🚫' : '💤'}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -1,93 +1,96 @@
 'use client';
 
-import { useState } from 'react';
+import { useAgents } from '../../lib/agent-context';
+import { AgentStatusBadge } from '../../components/AgentStatusBadge';
+import { NoAgentsPlaceholder } from '../../components/NoAgentsPlaceholder';
 
-type TaskStatus = 'todo' | 'in-progress' | 'done' | 'blocked';
-type Assignee = 'human' | 'ai';
+type TaskStatus = 'active' | 'running' | 'completed' | 'failed' | 'pending' | 'unknown';
 
-interface Task {
-  id: string;
-  title: string;
-  status: TaskStatus;
-  assignee: Assignee;
-  createdAt: string;
-}
+const STATUS_COLUMNS: { status: TaskStatus[]; label: string }[] = [
+  { status: ['pending'], label: 'Pending' },
+  { status: ['active', 'running'], label: 'In Progress' },
+  { status: ['completed'], label: 'Done' },
+  { status: ['failed'], label: 'Failed' },
+];
 
 export default function TasksBoard() {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', title: 'Build Mission Control', status: 'in-progress', assignee: 'ai', createdAt: '2026-02-19' },
-    { id: '2', title: 'Test Otto AI Trading', status: 'todo', assignee: 'ai', createdAt: '2026-02-19' },
-    { id: '3', title: 'Monitor Web4 Opportunities', status: 'in-progress', assignee: 'ai', createdAt: '2026-02-19' },
-  ]);
+  const { allSessions, agents, connectedCount } = useAgents();
 
-  const [newTask, setNewTask] = useState('');
+  if (agents.length === 0) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6">Tasks Board</h1>
+        <NoAgentsPlaceholder message="Connect agents to see live sessions as tasks." />
+      </div>
+    );
+  }
 
-  const addTask = () => {
-    if (!newTask.trim()) return;
-    const task: Task = {
-      id: Date.now().toString(),
-      title: newTask,
-      status: 'todo',
-      assignee: 'ai',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    setTasks([...tasks, task]);
-    setNewTask('');
-  };
-
-  const updateStatus = (id: string, status: TaskStatus) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, status } : t));
-  };
-
-  const columns: { status: TaskStatus; label: string }[] = [
-    { status: 'todo', label: '📋 To Do' },
-    { status: 'in-progress', label: '🔥 In Progress' },
-    { status: 'done', label: '✅ Done' },
-    { status: 'blocked', label: '🚫 Blocked' },
-  ];
+  // Map sessions to kanban columns
+  const categorized = allSessions.map((session) => {
+    let colStatus: TaskStatus = 'unknown';
+    for (const col of STATUS_COLUMNS) {
+      if (col.status.includes(session.status as TaskStatus)) {
+        colStatus = col.status[0];
+        break;
+      }
+    }
+    if (colStatus === 'unknown') colStatus = 'pending';
+    return { ...session, colStatus };
+  });
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">🎯 Tasks Board</h1>
-      
-      <div className="flex gap-2 mb-6">
-        <input
-          type="text"
-          value={newTask}
-          onChange={(e) => setNewTask(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && addTask()}
-          placeholder="Add new task..."
-          className="flex-1 p-2 border rounded-lg"
-        />
-        <button onClick={addTask} className="px-4 py-2 bg-blue-500 text-white rounded-lg">
-          Add
-        </button>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Tasks Board</h1>
+        <span className="text-sm text-gray-500">
+          {allSessions.length} session{allSessions.length !== 1 ? 's' : ''} from {connectedCount} agent{connectedCount !== 1 ? 's' : ''}
+        </span>
       </div>
 
+      {allSessions.length === 0 && connectedCount > 0 && (
+        <div className="bg-yellow-50 p-4 rounded-lg mb-6 text-sm text-yellow-800">
+          Connected to {connectedCount} agent{connectedCount > 1 ? 's' : ''} but no sessions found.
+        </div>
+      )}
+
       <div className="grid grid-cols-4 gap-4">
-        {columns.map(col => (
-          <div key={col.status} className="bg-gray-100 p-4 rounded-lg">
-            <h2 className="font-bold mb-4">{col.label}</h2>
-            {tasks.filter(t => t.status === col.status).map(task => (
-              <div key={task.id} className="bg-white p-3 rounded mb-2 shadow-sm">
-                <p className="font-medium">{task.title}</p>
-                <div className="flex gap-2 mt-2">
-                  <select
-                    value={task.status}
-                    onChange={(e) => updateStatus(task.id, e.target.value as TaskStatus)}
-                    className="text-sm border rounded px-2"
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="done">Done</option>
-                    <option value="blocked">Blocked</option>
-                  </select>
-                  <span className="text-xs px-2 py-1 bg-gray-200 rounded">
-                    {task.assignee === 'ai' ? '🤖 AI' : '👤 Human'}
-                  </span>
+        {STATUS_COLUMNS.map((col) => {
+          const items = categorized.filter((s) =>
+            col.status.includes(s.colStatus)
+          );
+          return (
+            <div key={col.label} className="bg-gray-100 p-4 rounded-lg">
+              <h2 className="font-bold mb-4">
+                {col.label}{' '}
+                <span className="text-gray-400 font-normal">({items.length})</span>
+              </h2>
+              {items.map((session) => (
+                <div key={`${session.agentName}-${session.id}`} className="bg-white p-3 rounded mb-2 shadow-sm">
+                  <p className="font-medium text-sm truncate">{session.id}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                      {session.agentName}
+                    </span>
+                    <span className="text-xs text-gray-400">{session.status}</span>
+                  </div>
+                  {session.created_at && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(session.created_at).toLocaleString()}
+                    </p>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Per-agent status */}
+      <div className="mt-6 flex gap-2 flex-wrap">
+        {agents.map(({ connection }) => (
+          <div key={connection.config.id} className="flex items-center gap-1.5 text-sm bg-white px-3 py-1.5 rounded shadow-sm">
+            <span>{connection.config.name}</span>
+            <AgentStatusBadge status={connection.status} showLabel={false} size="sm" />
           </div>
         ))}
       </div>
