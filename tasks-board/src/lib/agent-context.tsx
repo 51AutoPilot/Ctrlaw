@@ -87,7 +87,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
           const port = state.connection.config.localPort;
           let client = clientsRef.current.get(agentId);
           if (!client) {
-            client = new GatewayClient(port);
+            client = new GatewayClient(port, state.connection.config.gatewayToken);
             client.setConnectionCallback((_port, connected) => {
               updateAgentState(agentId, (prev) => ({
                 ...prev,

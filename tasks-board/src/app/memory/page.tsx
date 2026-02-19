@@ -24,7 +24,7 @@ export default function MemoryPage() {
     const results: (SessionHistory & { agentName: string })[] = [];
 
     for (const agent of connected) {
-      const client = new GatewayClient(agent.connection.config.localPort);
+      const client = new GatewayClient(agent.connection.config.localPort, agent.connection.config.gatewayToken);
       client.connect();
       await new Promise((r) => setTimeout(r, 1000));
 

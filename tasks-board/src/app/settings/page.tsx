@@ -27,10 +27,11 @@ export default function Settings() {
     ec2Ip: '',
     ec2User: 'ubuntu',
     pemPath: '',
+    gatewayToken: '',
   });
 
   const resetForm = () => {
-    setForm({ name: '', role: '工作者', avatar: '', ec2Ip: '', ec2User: 'ubuntu', pemPath: '' });
+    setForm({ name: '', role: '工作者', avatar: '', ec2Ip: '', ec2User: 'ubuntu', pemPath: '', gatewayToken: '' });
     setShowForm(false);
     setEditingId(null);
   };
@@ -45,6 +46,7 @@ export default function Settings() {
         ec2Ip: form.ec2Ip,
         ec2User: form.ec2User,
         pemPath: form.pemPath,
+        gatewayToken: form.gatewayToken,
       });
     } else {
       await addAgent({
@@ -54,6 +56,7 @@ export default function Settings() {
         ec2Ip: form.ec2Ip,
         ec2User: form.ec2User,
         pemPath: form.pemPath,
+        gatewayToken: form.gatewayToken,
       });
     }
     resetForm();
@@ -70,6 +73,7 @@ export default function Settings() {
       ec2Ip: c.ec2Ip,
       ec2User: c.ec2User,
       pemPath: c.pemPath,
+      gatewayToken: c.gatewayToken || '',
     });
     setEditingId(agentId);
     setShowForm(true);
@@ -178,6 +182,16 @@ export default function Settings() {
                 onChange={(e) => setForm({ ...form, pemPath: e.target.value })}
                 placeholder="C:\Users\...\.ssh\key.pem"
                 className="w-full p-2 border rounded-lg"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">Gateway Token</label>
+              <input
+                type="text"
+                value={form.gatewayToken}
+                onChange={(e) => setForm({ ...form, gatewayToken: e.target.value })}
+                placeholder="OpenClaw Gateway 認證 Token（留空則不驗證）"
+                className="w-full p-2 border rounded-lg font-mono text-sm"
               />
             </div>
             <div className="col-span-2 flex gap-2">

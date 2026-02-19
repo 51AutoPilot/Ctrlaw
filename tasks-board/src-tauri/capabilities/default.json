@@ -5,20 +5,19 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "shell:allow-spawn",
     "shell:allow-stdin-write",
     "shell:allow-kill",
     "shell:allow-open",
-    "fs:allow-app-read",
-    "fs:allow-app-write",
-    "fs:allow-appconfig-read",
-    "fs:allow-appconfig-write",
-    "fs:allow-appdata-read",
-    "fs:allow-appdata-write",
-    "fs:allow-read",
-    "fs:allow-write",
-    "fs:allow-exists",
-    "fs:allow-mkdir",
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "ssh",
+          "cmd": "ssh",
+          "args": true
+        }
+      ]
+    },
     {
       "identifier": "shell:allow-execute",
       "allow": [
@@ -29,6 +28,16 @@
         }
       ]
     },
+    "fs:allow-app-read",
+    "fs:allow-app-write",
+    "fs:allow-appconfig-read",
+    "fs:allow-appconfig-write",
+    "fs:allow-appdata-read",
+    "fs:allow-appdata-write",
+    "fs:allow-read",
+    "fs:allow-write",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
     {
       "identifier": "fs:scope",
       "allow": [

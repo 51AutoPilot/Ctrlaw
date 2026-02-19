@@ -88,6 +88,7 @@ export function createDefaultAgent(partial: Partial<AgentConfig> & Pick<AgentCon
     id: crypto.randomUUID(),
     role: 'Worker',
     avatar: partial.name.charAt(0).toUpperCase(),
+    gatewayToken: '',
     localPort: assignPort(existingAgents),
     enabled: true,
     ...partial,

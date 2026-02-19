@@ -8,6 +8,7 @@ export interface AgentConfig {
   ec2Ip: string;
   ec2User: string;
   pemPath: string;
+  gatewayToken: string;
   localPort: number;
   enabled: boolean;
 }
@@ -62,26 +63,6 @@ export interface SessionMessage {
 export interface SessionHistory {
   session_id: string;
   messages: SessionMessage[];
-}
-
-// === JSON-RPC ===
-
-export interface JsonRpcRequest {
-  jsonrpc: '2.0';
-  id: number;
-  method: string;
-  params?: Record<string, unknown>;
-}
-
-export interface JsonRpcResponse {
-  jsonrpc: '2.0';
-  id: number;
-  result?: unknown;
-  error?: {
-    code: number;
-    message: string;
-    data?: unknown;
-  };
 }
 
 // === Aggregated State ===
