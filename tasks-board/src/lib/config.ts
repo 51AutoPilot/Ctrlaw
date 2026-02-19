@@ -2,76 +2,92 @@ import type { AgentConfig } from './types';
 
 const CONFIG_FILE = 'agents.json';
 const BASE_PORT = 18790;
+const LS_KEY = 'mission-control-agents';
 
 let tauriFs: typeof import('@tauri-apps/plugin-fs') | null = null;
-let tauriPath: typeof import('@tauri-apps/api/path') | null = null;
+let BaseDir: typeof import('@tauri-apps/api/path').BaseDirectory | null = null;
 
 async function loadTauriModules() {
   if (!tauriFs) {
     try {
       tauriFs = await import('@tauri-apps/plugin-fs');
-      tauriPath = await import('@tauri-apps/api/path');
+      const pathMod = await import('@tauri-apps/api/path');
+      BaseDir = pathMod.BaseDirectory;
     } catch {
-      // Running outside Tauri (e.g., in browser dev mode)
       console.warn('Tauri FS plugin not available, using localStorage fallback');
     }
   }
 }
 
-async function getConfigPath(): Promise<string> {
-  await loadTauriModules();
-  if (tauriPath) {
-    const configDir = await tauriPath.appConfigDir();
-    return `${configDir}${CONFIG_FILE}`;
-  }
-  return CONFIG_FILE;
-}
-
 export async function loadAgents(): Promise<AgentConfig[]> {
   await loadTauriModules();
 
-  if (tauriFs) {
+  // Try Tauri FS first (persists across app restarts)
+  if (tauriFs && BaseDir) {
     try {
-      const path = await getConfigPath();
-      const exists = await tauriFs.exists(path);
-      if (!exists) return [];
-      const content = await tauriFs.readTextFile(path);
-      return JSON.parse(content) as AgentConfig[];
+      const fileExists = await tauriFs.exists(CONFIG_FILE, { baseDir: BaseDir.AppConfig });
+      if (fileExists) {
+        const content = await tauriFs.readTextFile(CONFIG_FILE, { baseDir: BaseDir.AppConfig });
+        const agents = JSON.parse(content) as AgentConfig[];
+        // Sync to localStorage as backup
+        try { localStorage.setItem(LS_KEY, content); } catch {}
+        return agents;
+      }
     } catch (e) {
-      console.error('Failed to load agents config:', e);
-      return [];
+      console.error('Failed to load agents from Tauri FS:', e);
     }
   }
 
-  // localStorage fallback for dev mode
+  // localStorage fallback
   try {
-    const data = localStorage.getItem('mission-control-agents');
-    return data ? JSON.parse(data) : [];
+    const data = localStorage.getItem(LS_KEY);
+    if (data) {
+      const agents = JSON.parse(data) as AgentConfig[];
+      // Try to migrate localStorage data to Tauri FS
+      if (tauriFs && BaseDir && agents.length > 0) {
+        saveTauriFs(agents).catch(() => {});
+      }
+      return agents;
+    }
+  } catch {}
+
+  return [];
+}
+
+async function saveTauriFs(agents: AgentConfig[]): Promise<void> {
+  if (!tauriFs || !BaseDir) return;
+  try {
+    // Ensure AppConfig directory exists
+    const dirExists = await tauriFs.exists('', { baseDir: BaseDir.AppConfig });
+    if (!dirExists) {
+      await tauriFs.mkdir('', { baseDir: BaseDir.AppConfig, recursive: true });
+    }
   } catch {
-    return [];
+    // Directory might already exist, continue
   }
+  await tauriFs.writeTextFile(CONFIG_FILE, JSON.stringify(agents, null, 2), {
+    baseDir: BaseDir.AppConfig,
+  });
 }
 
 export async function saveAgents(agents: AgentConfig[]): Promise<void> {
   await loadTauriModules();
 
-  if (tauriFs && tauriPath) {
-    try {
-      const configDir = await tauriPath.appConfigDir();
-      const dirExists = await tauriFs.exists(configDir);
-      if (!dirExists) {
-        await tauriFs.mkdir(configDir, { recursive: true });
-      }
-      const path = await getConfigPath();
-      await tauriFs.writeTextFile(path, JSON.stringify(agents, null, 2));
-    } catch (e) {
-      console.error('Failed to save agents config:', e);
-    }
-    return;
-  }
+  const json = JSON.stringify(agents, null, 2);
 
-  // localStorage fallback
-  localStorage.setItem('mission-control-agents', JSON.stringify(agents));
+  // Always save to localStorage as backup
+  try {
+    localStorage.setItem(LS_KEY, json);
+  } catch {}
+
+  // Save to Tauri FS (persistent file)
+  if (tauriFs && BaseDir) {
+    try {
+      await saveTauriFs(agents);
+    } catch (e) {
+      console.error('Failed to save agents to Tauri FS:', e);
+    }
+  }
 }
 
 export function assignPort(agents: AgentConfig[]): number {
