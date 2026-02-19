@@ -37,6 +37,10 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const clientsRef = useRef<Map<string, GatewayClient>>(new Map());
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Keep a ref that always mirrors agentStates so callbacks can read the latest
+  // value without needing agentStates in their dependency arrays.
+  const agentStatesRef = useRef<Map<string, AgentState>>(agentStates);
+  useEffect(() => { agentStatesRef.current = agentStates; }, [agentStates]);
 
   const updateAgentState = useCallback((agentId: string, updater: (prev: AgentState) => AgentState) => {
     setAgentStates((prev) => {
@@ -51,60 +55,77 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize: load agents from config
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const configs = await loadAgents();
-      const initial = new Map<string, AgentState>();
-      for (const config of configs) {
-        initial.set(config.id, {
-          connection: { config, status: 'disconnected' },
-          sessions: [],
-          nodes: [],
-        });
+      try {
+        const configs = await loadAgents();
+        if (cancelled) return;
+        const initial = new Map<string, AgentState>();
+        for (const config of configs) {
+          initial.set(config.id, {
+            connection: { config, status: 'disconnected' },
+            sessions: [],
+            nodes: [],
+          });
+        }
+        setAgentStates(initial);
+      } catch (e) {
+        console.error('Failed to load agents:', e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setAgentStates(initial);
-      setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, []);
 
-  // Listen for tunnel status changes
+  // Listen for tunnel status changes — use ref to read latest state so we
+  // don't need agentStates in the dependency array (avoids stale closures
+  // and infinite re-registration).
   useEffect(() => {
     onTunnelStatus((agentId, tunnelStatus, error) => {
-      let status: ConnectionStatus;
-      if (tunnelStatus === 'open') status = 'tunnel_up';
-      else if (tunnelStatus === 'connecting') status = 'connecting';
-      else if (tunnelStatus === 'error') status = 'error';
-      else status = 'disconnected';
+      try {
+        let status: ConnectionStatus;
+        if (tunnelStatus === 'open') status = 'tunnel_up';
+        else if (tunnelStatus === 'connecting') status = 'connecting';
+        else if (tunnelStatus === 'error') status = 'error';
+        else status = 'disconnected';
 
-      updateAgentState(agentId, (prev) => ({
-        ...prev,
-        connection: { ...prev.connection, status, error },
-      }));
+        updateAgentState(agentId, (prev) => ({
+          ...prev,
+          connection: { ...prev.connection, status, error },
+        }));
 
-      // When tunnel is up, connect WebSocket
-      if (tunnelStatus === 'open') {
-        const state = agentStates.get(agentId);
-        if (state) {
-          const port = state.connection.config.localPort;
-          let client = clientsRef.current.get(agentId);
-          if (!client) {
-            client = new GatewayClient(port, state.connection.config.gatewayToken);
-            client.setConnectionCallback((_port, connected) => {
-              updateAgentState(agentId, (prev) => ({
-                ...prev,
-                connection: {
-                  ...prev.connection,
-                  status: connected ? 'ws_connected' : 'tunnel_up',
-                  lastSeen: connected ? Date.now() : prev.connection.lastSeen,
-                },
-              }));
-            });
-            clientsRef.current.set(agentId, client);
+        // When tunnel is up, connect WebSocket
+        if (tunnelStatus === 'open') {
+          const state = agentStatesRef.current.get(agentId);
+          if (state) {
+            const port = state.connection.config.localPort;
+            const token = state.connection.config.gatewayToken;
+            let client = clientsRef.current.get(agentId);
+            if (!client) {
+              client = new GatewayClient(port, token);
+              client.setConnectionCallback((_port, connected) => {
+                updateAgentState(agentId, (prev) => ({
+                  ...prev,
+                  connection: {
+                    ...prev.connection,
+                    status: connected ? 'ws_connected' : 'tunnel_up',
+                    lastSeen: connected ? Date.now() : prev.connection.lastSeen,
+                  },
+                }));
+              });
+              clientsRef.current.set(agentId, client);
+            }
+            client.connect();
           }
-          client.connect();
         }
+      } catch (e) {
+        console.error('Error in tunnel status handler:', e);
       }
     });
-  }, [agentStates, updateAgentState]);
+
+    return () => { onTunnelStatus(() => {}); };
+  }, [updateAgentState]);
 
   // Polling: fetch data from connected agents
   useEffect(() => {
@@ -120,8 +141,8 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
           updateAgentState(agentId, (prev) => ({
             ...prev,
             health: health || prev.health,
-            sessions: sessions || prev.sessions,
-            nodes: nodes || prev.nodes,
+            sessions: Array.isArray(sessions) ? sessions : prev.sessions,
+            nodes: Array.isArray(nodes) ? nodes : prev.nodes,
             connection: {
               ...prev.connection,
               lastSeen: Date.now(),
@@ -156,11 +177,11 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const agents = Array.from(agentStates.values());
 
   const allSessions = agents.flatMap((a) =>
-    a.sessions.map((s) => ({ ...s, agentName: a.connection.config.name }))
+    (Array.isArray(a.sessions) ? a.sessions : []).map((s) => ({ ...s, agentName: a.connection.config.name }))
   );
 
   const allNodes = agents.flatMap((a) =>
-    a.nodes.map((n) => ({ ...n, agentName: a.connection.config.name }))
+    (Array.isArray(a.nodes) ? a.nodes : []).map((n) => ({ ...n, agentName: a.connection.config.name }))
   );
 
   const connectedCount = agents.filter(
@@ -170,7 +191,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const addAgent = async (
     partial: Partial<AgentConfig> & Pick<AgentConfig, 'name' | 'ec2Ip' | 'ec2User' | 'pemPath'>
   ) => {
-    const configs = Array.from(agentStates.values()).map((a) => a.connection.config);
+    const configs = Array.from(agentStatesRef.current.values()).map((a) => a.connection.config);
     const newConfig = createDefaultAgent(partial, configs);
     const newState: AgentState = {
       connection: { config: newConfig, status: 'disconnected' },
@@ -194,18 +215,19 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     }
     await closeTunnel(id);
 
+    // Use the state-setter callback form so we compute remaining from latest state
+    let remaining: AgentConfig[] = [];
     setAgentStates((prev) => {
       const next = new Map(prev);
       next.delete(id);
+      remaining = Array.from(next.values()).map((a) => a.connection.config);
       return next;
     });
-    const remaining = Array.from(agentStates.values())
-      .filter((a) => a.connection.config.id !== id)
-      .map((a) => a.connection.config);
     await saveAgents(remaining);
   };
 
   const updateAgentConfig = async (id: string, updates: Partial<AgentConfig>) => {
+    let configs: AgentConfig[] = [];
     setAgentStates((prev) => {
       const next = new Map(prev);
       const state = next.get(id);
@@ -218,22 +240,28 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
           },
         });
       }
+      configs = Array.from(next.values()).map((a) => a.connection.config);
       return next;
     });
-    const configs = Array.from(agentStates.values()).map((a) =>
-      a.connection.config.id === id ? { ...a.connection.config, ...updates } : a.connection.config
-    );
     await saveAgents(configs);
   };
 
   const connectAgent = async (id: string) => {
-    const state = agentStates.get(id);
+    const state = agentStatesRef.current.get(id);
     if (!state) return;
     updateAgentState(id, (prev) => ({
       ...prev,
       connection: { ...prev.connection, status: 'connecting', error: undefined },
     }));
-    await openTunnel(state.connection.config);
+    try {
+      await openTunnel(state.connection.config);
+    } catch (e) {
+      console.error('Failed to open tunnel:', e);
+      updateAgentState(id, (prev) => ({
+        ...prev,
+        connection: { ...prev.connection, status: 'error', error: e instanceof Error ? e.message : String(e) },
+      }));
+    }
   };
 
   const disconnectAgent = async (id: string) => {
@@ -242,7 +270,11 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       client.disconnect();
       clientsRef.current.delete(id);
     }
-    await closeTunnel(id);
+    try {
+      await closeTunnel(id);
+    } catch (e) {
+      console.error('Failed to close tunnel:', e);
+    }
     updateAgentState(id, (prev) => ({
       ...prev,
       connection: { ...prev.connection, status: 'disconnected', error: undefined },
@@ -253,7 +285,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   };
 
   const connectAll = async () => {
-    for (const state of agentStates.values()) {
+    for (const state of agentStatesRef.current.values()) {
       if (state.connection.config.enabled && state.connection.status === 'disconnected') {
         await connectAgent(state.connection.config.id);
       }
@@ -261,7 +293,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   };
 
   const disconnectAll = async () => {
-    for (const state of agentStates.values()) {
+    for (const state of agentStatesRef.current.values()) {
       if (state.connection.status !== 'disconnected') {
         await disconnectAgent(state.connection.config.id);
       }

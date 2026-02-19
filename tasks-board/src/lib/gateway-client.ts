@@ -92,12 +92,17 @@ export class GatewayClient {
     this.ws.onclose = () => {
       this._connected = false;
       this._handshook = false;
-      this.onConnectionChange?.(this.port, false);
+      try {
+        this.onConnectionChange?.(this.port, false);
+      } catch (e) {
+        console.error('Error in connection change callback:', e);
+      }
       this.rejectAllPending('WebSocket closed');
       this.scheduleReconnect();
     };
 
-    this.ws.onerror = () => {
+    this.ws.onerror = (ev) => {
+      console.warn(`WebSocket error on port ${this.port}:`, ev);
       // onclose will fire after onerror
     };
 
@@ -147,11 +152,19 @@ export class GatewayClient {
         scopes: ['operator.admin'],
       });
       this._handshook = true;
-      this.onConnectionChange?.(this.port, true);
+      try {
+        this.onConnectionChange?.(this.port, true);
+      } catch (e) {
+        console.error('Error in connection change callback:', e);
+      }
     } catch (e) {
       console.error('Handshake failed:', e);
       this._handshook = false;
-      this.onConnectionChange?.(this.port, false);
+      try {
+        this.onConnectionChange?.(this.port, false);
+      } catch (e2) {
+        console.error('Error in connection change callback:', e2);
+      }
     }
   }
 
@@ -231,8 +244,12 @@ export class GatewayClient {
   }
 
   async listSessions(): Promise<GatewaySession[]> {
-    const result = await this.request('sessions.list') as { sessions?: GatewaySession[] };
-    return result?.sessions || [];
+    const result = await this.request('sessions.list');
+    if (Array.isArray(result)) return result;
+    if (result && typeof result === 'object' && Array.isArray((result as Record<string, unknown>).sessions)) {
+      return (result as { sessions: GatewaySession[] }).sessions;
+    }
+    return [];
   }
 
   async getSessionHistory(sessionId: string): Promise<SessionHistory> {
@@ -242,7 +259,11 @@ export class GatewayClient {
 
   async listNodes(): Promise<GatewayNode[]> {
     const result = await this.request('node.list');
-    return (result as GatewayNode[]) || [];
+    if (Array.isArray(result)) return result;
+    if (result && typeof result === 'object' && Array.isArray((result as Record<string, unknown>).nodes)) {
+      return (result as { nodes: GatewayNode[] }).nodes;
+    }
+    return [];
   }
 
   async describeNode(nodeId: string): Promise<GatewayNode> {

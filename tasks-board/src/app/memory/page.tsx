@@ -63,21 +63,25 @@ export default function MemoryPage() {
 
     return {
       id: `${session.agentName}-${session.id}`,
-      title: session.id,
-      content: messagePreview || t('memory.sessionStatus', { status: session.status }),
-      agentName: session.agentName,
+      title: session.id || '',
+      content: messagePreview || t('memory.sessionStatus', { status: session.status || '' }),
+      agentName: session.agentName || '',
       date: session.created_at || '',
-      status: session.status,
+      status: session.status || '',
       messageCount: history?.messages.length || 0,
     };
   });
 
-  const filtered = memoryCards.filter(
-    (m) =>
-      m.title.toLowerCase().includes(search.toLowerCase()) ||
-      m.content.toLowerCase().includes(search.toLowerCase()) ||
-      m.agentName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = search
+    ? memoryCards.filter((m) => {
+        const q = search.toLowerCase();
+        return (
+          (m.title && m.title.toLowerCase().includes(q)) ||
+          (m.content && m.content.toLowerCase().includes(q)) ||
+          (m.agentName && m.agentName.toLowerCase().includes(q))
+        );
+      })
+    : memoryCards;
 
   if (agents.length === 0) {
     return (

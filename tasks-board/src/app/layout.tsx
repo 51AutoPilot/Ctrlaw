@@ -1,5 +1,6 @@
 'use client';
 
+import React from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
@@ -15,6 +16,42 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+// Error boundary to catch React render errors and display details
+class AppErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+          <h1 style={{ color: '#c00' }}>Runtime Error</h1>
+          <pre style={{
+            background: '#f5f5f5', padding: '1rem', borderRadius: '8px',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+          }}>
+            {this.state.error.message}{'\n\n'}{this.state.error.stack}
+          </pre>
+          <button
+            onClick={() => this.setState({ error: null })}
+            style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: '#0070f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const navKeys = [
   { href: "/", key: "nav.home" },
@@ -99,16 +136,34 @@ export default function RootLayout({
     <html lang="zh-TW">
       <head>
         <title>Ctrlaw</title>
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.__CTRLAW_ERRORS = [];
+          window.onerror = function(msg, src, line, col, err) {
+            window.__CTRLAW_ERRORS.push({msg:msg, src:src, line:line, col:col, stack:err&&err.stack});
+            var el = document.getElementById('__ctrlaw_err');
+            if (!el) { el = document.createElement('pre'); el.id='__ctrlaw_err'; el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#fee;color:#c00;padding:1rem;font-size:12px;max-height:50vh;overflow:auto;white-space:pre-wrap;word-break:break-all;'; document.body.appendChild(el); }
+            el.textContent = 'JS Error: ' + msg + '\\nSource: ' + src + ':' + line + ':' + col + '\\n' + (err&&err.stack||'');
+          };
+          window.addEventListener('unhandledrejection', function(e) {
+            var msg = e.reason && (e.reason.message || e.reason);
+            window.__CTRLAW_ERRORS.push({type:'unhandledrejection',msg:msg,stack:e.reason&&e.reason.stack});
+            var el = document.getElementById('__ctrlaw_err');
+            if (!el) { el = document.createElement('pre'); el.id='__ctrlaw_err'; el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#fee;color:#c00;padding:1rem;font-size:12px;max-height:50vh;overflow:auto;white-space:pre-wrap;word-break:break-all;'; document.body.appendChild(el); }
+            el.textContent = 'Unhandled Promise Rejection: ' + msg + '\\n' + (e.reason&&e.reason.stack||'');
+          });
+        ` }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}
       >
-        <I18nProvider>
-          <AgentProvider>
-            <NavBar />
-            <main className="max-w-7xl mx-auto">{children}</main>
-          </AgentProvider>
-        </I18nProvider>
+        <AppErrorBoundary>
+          <I18nProvider>
+            <AgentProvider>
+              <NavBar />
+              <main className="max-w-7xl mx-auto">{children}</main>
+            </AgentProvider>
+          </I18nProvider>
+        </AppErrorBoundary>
       </body>
     </html>
   );

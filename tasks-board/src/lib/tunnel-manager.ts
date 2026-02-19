@@ -35,7 +35,11 @@ function emitStatus(agentId: string, status: TunnelStatus, error?: string) {
   state.status = status;
   state.error = error;
   tunnels.set(agentId, state);
-  statusCallback?.(agentId, status, error);
+  try {
+    statusCallback?.(agentId, status, error);
+  } catch (e) {
+    console.error('Error in tunnel status callback:', e);
+  }
 }
 
 export async function openTunnel(agent: AgentConfig): Promise<void> {
