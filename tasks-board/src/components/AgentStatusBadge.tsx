@@ -1,13 +1,14 @@
 'use client';
 
 import type { ConnectionStatus } from '../lib/types';
+import { useT } from '../lib/i18n';
 
-const statusConfig: Record<ConnectionStatus, { color: string; bg: string; label: string }> = {
-  disconnected: { color: 'text-gray-600', bg: 'bg-gray-100', label: '離線' },
-  connecting: { color: 'text-yellow-700', bg: 'bg-yellow-100', label: '連線中...' },
-  tunnel_up: { color: 'text-yellow-700', bg: 'bg-yellow-100', label: '通道已建立' },
-  ws_connected: { color: 'text-green-700', bg: 'bg-green-100', label: '已連線' },
-  error: { color: 'text-red-700', bg: 'bg-red-100', label: '錯誤' },
+const statusStyle: Record<ConnectionStatus, { color: string; bg: string }> = {
+  disconnected: { color: 'text-gray-600', bg: 'bg-gray-100' },
+  connecting: { color: 'text-yellow-700', bg: 'bg-yellow-100' },
+  tunnel_up: { color: 'text-yellow-700', bg: 'bg-yellow-100' },
+  ws_connected: { color: 'text-green-700', bg: 'bg-green-100' },
+  error: { color: 'text-red-700', bg: 'bg-red-100' },
 };
 
 const dotColor: Record<ConnectionStatus, string> = {
@@ -25,8 +26,10 @@ interface Props {
 }
 
 export function AgentStatusBadge({ status, showLabel = true, size = 'md' }: Props) {
-  const config = statusConfig[status];
+  const { t } = useT();
+  const style = statusStyle[status];
   const dot = dotColor[status];
+  const label = t(`status.${status}`);
 
   if (!showLabel) {
     return (
@@ -40,7 +43,7 @@ export function AgentStatusBadge({ status, showLabel = true, size = 'md' }: Prop
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded ${config.bg} ${config.color} ${
+      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded ${style.bg} ${style.color} ${
         size === 'sm' ? 'text-xs' : 'text-sm'
       }`}
     >
@@ -49,7 +52,7 @@ export function AgentStatusBadge({ status, showLabel = true, size = 'md' }: Prop
           status === 'connecting' || status === 'tunnel_up' ? 'animate-pulse' : ''
         }`}
       />
-      {config.label}
+      {label}
     </span>
   );
 }

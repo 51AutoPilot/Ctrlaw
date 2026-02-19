@@ -3,24 +3,26 @@
 import { useAgents } from '../../lib/agent-context';
 import { AgentStatusBadge } from '../../components/AgentStatusBadge';
 import { NoAgentsPlaceholder } from '../../components/NoAgentsPlaceholder';
+import { useT } from '../../lib/i18n';
 
 type TaskStatus = 'active' | 'running' | 'completed' | 'failed' | 'pending' | 'unknown';
 
-const STATUS_COLUMNS: { status: TaskStatus[]; label: string }[] = [
-  { status: ['pending'], label: '待處理' },
-  { status: ['active', 'running'], label: '進行中' },
-  { status: ['completed'], label: '已完成' },
-  { status: ['failed'], label: '失敗' },
-];
-
 export default function TasksBoard() {
   const { allSessions, agents, connectedCount } = useAgents();
+  const { t, locale } = useT();
+
+  const STATUS_COLUMNS: { status: TaskStatus[]; label: string }[] = [
+    { status: ['pending'], label: t('tasks.pending') },
+    { status: ['active', 'running'], label: t('tasks.inProgress') },
+    { status: ['completed'], label: t('tasks.completed') },
+    { status: ['failed'], label: t('tasks.failed') },
+  ];
 
   if (agents.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">任務看板</h1>
-        <NoAgentsPlaceholder message="連接 Agent 即可查看即時 Session 任務。" />
+        <h1 className="text-2xl font-bold mb-6">{t('tasks.title')}</h1>
+        <NoAgentsPlaceholder message={t('tasks.placeholder')} />
       </div>
     );
   }
@@ -40,15 +42,15 @@ export default function TasksBoard() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">任務看板</h1>
+        <h1 className="text-2xl font-bold">{t('tasks.title')}</h1>
         <span className="text-sm text-gray-500">
-          來自 {connectedCount} 個 Agent 的 {allSessions.length} 個 Session
+          {t('tasks.sessionCount', { sessions: allSessions.length, agents: connectedCount })}
         </span>
       </div>
 
       {allSessions.length === 0 && connectedCount > 0 && (
         <div className="bg-yellow-50 p-4 rounded-lg mb-6 text-sm text-yellow-800">
-          已連接 {connectedCount} 個 Agent，但未找到任何 Session。
+          {t('tasks.noSessions', { count: connectedCount })}
         </div>
       )}
 
@@ -74,7 +76,7 @@ export default function TasksBoard() {
                   </div>
                   {session.created_at && (
                     <p className="text-xs text-gray-400 mt-1">
-                      {new Date(session.created_at).toLocaleString('zh-TW')}
+                      {new Date(session.created_at).toLocaleString(locale)}
                     </p>
                   )}
                 </div>
@@ -84,7 +86,6 @@ export default function TasksBoard() {
         })}
       </div>
 
-      {/* 各 Agent 狀態 */}
       <div className="mt-6 flex gap-2 flex-wrap">
         {agents.map(({ connection }) => (
           <div key={connection.config.id} className="flex items-center gap-1.5 text-sm bg-white px-3 py-1.5 rounded shadow-sm">

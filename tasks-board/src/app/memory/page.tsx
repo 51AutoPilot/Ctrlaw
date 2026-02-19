@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAgents } from '../../lib/agent-context';
 import { NoAgentsPlaceholder } from '../../components/NoAgentsPlaceholder';
 import { GatewayClient } from '../../lib/gateway-client';
+import { useT } from '../../lib/i18n';
 import type { SessionHistory } from '../../lib/types';
 
 export default function MemoryPage() {
   const { allSessions, agents } = useAgents();
+  const { t, locale } = useT();
   const [search, setSearch] = useState('');
   const [histories, setHistories] = useState<
     (SessionHistory & { agentName: string })[]
@@ -33,7 +35,7 @@ export default function MemoryPage() {
           const history = await client.getSessionHistory(session.id);
           results.push({ ...history, agentName: agent.connection.config.name });
         } catch {
-          // 略過無法取得紀錄的 Session
+          // Skip sessions that fail
         }
       }
 
@@ -62,7 +64,7 @@ export default function MemoryPage() {
     return {
       id: `${session.agentName}-${session.id}`,
       title: session.id,
-      content: messagePreview || `Session 狀態：${session.status}`,
+      content: messagePreview || t('memory.sessionStatus', { status: session.status }),
       agentName: session.agentName,
       date: session.created_at || '',
       status: session.status,
@@ -80,33 +82,33 @@ export default function MemoryPage() {
   if (agents.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">記憶庫</h1>
-        <NoAgentsPlaceholder message="連接 Agent 即可瀏覽 Session 對話紀錄。" />
+        <h1 className="text-2xl font-bold mb-6">{t('memory.title')}</h1>
+        <NoAgentsPlaceholder message={t('memory.placeholder')} />
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">記憶庫</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('memory.title')}</h1>
 
       <input
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="搜尋 Session 與對話紀錄..."
+        placeholder={t('memory.search')}
         className="w-full p-3 border rounded-lg mb-6"
       />
 
       {loadingHistory && (
-        <p className="text-sm text-gray-400 mb-4">正在載入對話紀錄...</p>
+        <p className="text-sm text-gray-400 mb-4">{t('memory.loading')}</p>
       )}
 
       {filtered.length === 0 ? (
         <p className="text-gray-500">
           {allSessions.length === 0
-            ? '已連線的 Agent 中沒有可用的 Session。'
-            : '沒有符合搜尋條件的結果。'}
+            ? t('memory.noSessions')
+            : t('memory.noResults')}
         </p>
       ) : (
         <div className="space-y-4">
@@ -116,7 +118,7 @@ export default function MemoryPage() {
                 <h3 className="font-bold text-lg truncate flex-1">{memory.title}</h3>
                 <span className="text-sm text-gray-500 ml-2 whitespace-nowrap">
                   {memory.date
-                    ? new Date(memory.date).toLocaleDateString('zh-TW')
+                    ? new Date(memory.date).toLocaleDateString(locale)
                     : ''}
                 </span>
               </div>
@@ -138,7 +140,7 @@ export default function MemoryPage() {
                 </span>
                 {memory.messageCount > 0 && (
                   <span className="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded">
-                    {memory.messageCount} 則訊息
+                    {t('memory.messageCount', { count: memory.messageCount })}
                   </span>
                 )}
               </div>

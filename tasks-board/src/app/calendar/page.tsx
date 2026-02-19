@@ -3,21 +3,28 @@
 import { useMemo } from 'react';
 import { useAgents } from '../../lib/agent-context';
 import { NoAgentsPlaceholder } from '../../components/NoAgentsPlaceholder';
+import { useT } from '../../lib/i18n';
 
 export default function Calendar() {
   const { allSessions, agents, connectedCount } = useAgents();
+  const { t, locale } = useT();
 
   const sessionsByDate = useMemo(() => {
     const groups: Record<string, typeof allSessions> = {};
     for (const session of allSessions) {
       const dateStr = session.created_at
         ? new Date(session.created_at).toISOString().split('T')[0]
-        : '未知';
+        : t('calendar.unknown');
       if (!groups[dateStr]) groups[dateStr] = [];
       groups[dateStr].push(session);
     }
     return groups;
-  }, [allSessions]);
+  }, [allSessions, t]);
+
+  const dayNames = useMemo(() => [
+    t('calendar.sun'), t('calendar.mon'), t('calendar.tue'), t('calendar.wed'),
+    t('calendar.thu'), t('calendar.fri'), t('calendar.sat'),
+  ], [t]);
 
   const days = useMemo(() => {
     const result: { date: string; label: string; dayOfWeek: string }[] = [];
@@ -26,35 +33,33 @@ export default function Calendar() {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
       const iso = d.toISOString().split('T')[0];
-      const dow = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
       result.push({
         date: iso,
         label: `${d.getMonth() + 1}/${d.getDate()}`,
-        dayOfWeek: dow,
+        dayOfWeek: dayNames[d.getDay()],
       });
     }
     return result;
-  }, []);
+  }, [dayNames]);
 
   if (agents.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">行事曆</h1>
-        <NoAgentsPlaceholder message="連接 Agent 即可查看 Session 活動時間線。" />
+        <h1 className="text-2xl font-bold mb-6">{t('calendar.title')}</h1>
+        <NoAgentsPlaceholder message={t('calendar.placeholder')} />
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">行事曆</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('calendar.title')}</h1>
 
-      {/* 七日視圖 */}
       <div className="bg-white rounded-lg shadow overflow-hidden mb-8">
         <div className="grid grid-cols-7 bg-gray-100">
           {days.map((d) => (
             <div key={d.date} className="p-2 text-center">
-              <div className="font-bold text-xs">週{d.dayOfWeek}</div>
+              <div className="font-bold text-xs">{d.dayOfWeek}</div>
               <div className="text-sm">{d.label}</div>
             </div>
           ))}
@@ -90,10 +95,9 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Session 活動紀錄 */}
-      <h2 className="text-xl font-bold mb-4">Session 活動紀錄</h2>
+      <h2 className="text-xl font-bold mb-4">{t('calendar.sessionLog')}</h2>
       {allSessions.length === 0 && connectedCount > 0 ? (
-        <p className="text-gray-500">已連線的 Agent 中未找到任何 Session。</p>
+        <p className="text-gray-500">{t('calendar.noSessions')}</p>
       ) : (
         <div className="space-y-2">
           {allSessions.map((session) => (
@@ -105,7 +109,7 @@ export default function Calendar() {
                 <h3 className="font-bold">{session.id}</h3>
                 <p className="text-sm text-gray-500">
                   {session.agentName}
-                  {session.created_at && ` \u2022 ${new Date(session.created_at).toLocaleString('zh-TW')}`}
+                  {session.created_at && ` \u2022 ${new Date(session.created_at).toLocaleString(locale)}`}
                 </p>
               </div>
               <span

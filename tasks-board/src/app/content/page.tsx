@@ -3,19 +3,21 @@
 import { useMemo } from 'react';
 import { useAgents } from '../../lib/agent-context';
 import { NoAgentsPlaceholder } from '../../components/NoAgentsPlaceholder';
+import { useT } from '../../lib/i18n';
 
 type Stage = 'pending' | 'active' | 'running' | 'completed' | 'failed';
 
-const STAGES: { id: Stage; label: string }[] = [
-  { id: 'pending', label: '待處理' },
-  { id: 'active', label: '進行中' },
-  { id: 'running', label: '執行中' },
-  { id: 'completed', label: '已完成' },
-  { id: 'failed', label: '失敗' },
-];
-
 export default function ContentPipeline() {
   const { allSessions, agents, connectedCount } = useAgents();
+  const { t, locale } = useT();
+
+  const STAGES: { id: Stage; label: string }[] = [
+    { id: 'pending', label: t('content.pending') },
+    { id: 'active', label: t('content.active') },
+    { id: 'running', label: t('content.running') },
+    { id: 'completed', label: t('content.completed') },
+    { id: 'failed', label: t('content.failed') },
+  ];
 
   const grouped = useMemo(() => {
     const map: Record<string, typeof allSessions> = {};
@@ -30,13 +32,13 @@ export default function ContentPipeline() {
       map[stageId].push(session);
     }
     return map;
-  }, [allSessions]);
+  }, [allSessions, t]);
 
   if (agents.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">內容管線</h1>
-        <NoAgentsPlaceholder message="連接 Agent 即可查看 Session 流經各管線階段。" />
+        <h1 className="text-2xl font-bold mb-6">{t('content.title')}</h1>
+        <NoAgentsPlaceholder message={t('content.placeholder')} />
       </div>
     );
   }
@@ -44,9 +46,9 @@ export default function ContentPipeline() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">內容管線</h1>
+        <h1 className="text-2xl font-bold">{t('content.title')}</h1>
         <span className="text-sm text-gray-500">
-          來自 {connectedCount} 個 Agent 共 {allSessions.length} 個 Session
+          {t('content.sessionCount', { sessions: allSessions.length, agents: connectedCount })}
         </span>
       </div>
 
@@ -68,7 +70,7 @@ export default function ContentPipeline() {
                   <p className="text-xs text-gray-400">{session.agentName}</p>
                   {session.created_at && (
                     <p className="text-xs text-gray-400">
-                      {new Date(session.created_at).toLocaleDateString('zh-TW')}
+                      {new Date(session.created_at).toLocaleDateString(locale)}
                     </p>
                   )}
                 </div>
